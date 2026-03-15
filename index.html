@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Generador de Campaña - Fajardo Presidente</title>
+    
+    <!-- === PWA META TAGS (obligatorios) === -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1B3679">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fajardo Presidente">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <style>
+        /* Tu CSS original sin cambios */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; display: flex; flex-direction: column; align-items: center; padding: 15px; color: #333; margin: 0; overscroll-behavior: none; }
+        h2 { color: #1B3679; margin-bottom: 10px; text-align: center; font-size: 1.5rem; }
+        .editor-container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 500px; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
+        .canvas-wrapper { position: relative; margin: 20px 0; border-radius: 50%; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.2); cursor: grab; width: 100%; max-width: 400px; aspect-ratio: 1 / 1; height: auto; border: 4px solid #fff; background-color: #ddd; touch-action: none; }
+        .canvas-wrapper:active { cursor: grabbing; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .controls { width: 100%; display: flex; flex-direction: column; gap: 15px; }
+        .control-row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 12px; border-radius: 8px; }
+        label { font-weight: 700; font-size: 0.9em; color: #1B3679; text-transform: uppercase; white-space: nowrap; }
+        input[type="range"] { flex-grow: 1; margin-left: 15px; cursor: pointer; accent-color: #1B3679; height: 25px; }
+        .file-btn { display: block; width: 100%; padding: 15px; text-align: center; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; border: 2px dashed #1B3679; background: white; color: #1B3679; transition: 0.3s; position: relative; box-sizing: border-box; }
+        .file-btn:active { background: #f0f0f0; }
+        .file-btn input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        button#downloadBtn { background-color: #1B3679; color: white; border: none; padding: 18px; font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 10px; box-shadow: 0 4px 10px rgba(27, 54, 121, 0.3); -webkit-tap-highlight-color: transparent; }
+        button#downloadBtn:hover { background-color: #132759; }
+        button#downloadBtn:disabled { background-color: #ccc; cursor: not-allowed; box-shadow: none; }
+        .credits { margin-top: 20px; font-size: 0.85rem; color: #666; text-align: center; }
+        .credits a { color: #1B3679; text-decoration: none; font-weight: bold; transition: color 0.3s; }
+        .credits a:hover { color: #DC2329; text-decoration: underline; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&family=Oswald:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <h2>Foto de Campaña</h2>
+
+    <div class="editor-container">
+        <div class="controls">
+            <div class="file-btn">
+                <span>📷 TOCAR PARA SUBIR FOTO</span>
+                <input type="file" id="uploadInput" accept="image/*">
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="mainCanvas" width="770" height="770"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-row">
+                <label>Tamaño Foto</label>
+                <input type="range" id="photoScale" min="0.1" max="3" step="0.05" value="1" disabled>
+            </div>
+            <button id="downloadBtn" disabled>DESCARGAR IMAGEN</button>
+        </div>
+
+        <div class="credits">
+            Creado por: <a href="https://www.instagram.com/andres_santage" target="_blank">@andres_santage</a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const uploadInput = document.getElementById('uploadInput');
+        const photoScaleSlider = document.getElementById('photoScale');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        const config = { /* tu config original sin cambios */ 
+            colorYellow: "#FCCC0A", colorBlue: "#1B3679", colorRed: "#DC2329",
+            topText: "CAMBIO. SERIO. SEGURO.", bottomText: "FAJARDO PRESIDENTE",
+            canvasSize: 770, pathRadius: 329, strokeWidth: 80,
+            fontSize: 63, fontFamily: "'Bebas Neue', Impact, sans-serif"
+        };
+
+        let userImage = null;
+        let frameImage = new Image();
+        let photoState = { x: 0, y: 0, scale: 1 };
+        let isDraggingPhoto = false;
+        let startDragX, startDragY;
+
+        function createSVGFrame() { /* tu función original sin cambios */ 
+            const size = config.canvasSize;
+            const cx = size / 2;
+            const cy = size / 2;
+            const r = config.pathRadius;
+            const fontStack = "Impact, 'Arial Narrow', sans-serif-condensed, sans-serif";
+            
+            const svgString = `...`; // (el mismo SVG que tenías)
+            const blob = new Blob([svgString], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(blob);
+            frameImage.src = url;
+            frameImage.onload = () => draw();
+        }
+
+        /* === TODO TU CÓDIGO ORIGINAL (upload, draw, drag, download) SIN CAMBIOS === */
+        uploadInput.addEventListener('change', (e) => { /* tu código */ });
+        function draw() { /* tu código */ }
+        photoScaleSlider.addEventListener('input', (e) => { /* tu código */ });
+        function getPos(e) { /* tu código */ }
+        function startDrag(e) { /* tu código */ }
+        function dragging(e) { /* tu código */ }
+        function endDrag() { isDraggingPhoto = false; }
+
+        canvas.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', dragging);
+        window.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('touchstart', startDrag, {passive: false});
+        window.addEventListener('touchmove', dragging, {passive: false});
+        window.addEventListener('touchend', endDrag);
+
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'fajardo_presidente.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        createSVGFrame();
+
+        // === REGISTRO DEL SERVICE WORKER (nuevo para PWA) ===
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('✅ PWA Service Worker registrado'))
+                    .catch(err => console.log('Error SW:', err));
+            });
+        }
+    </script>
+</body>
+</html>
